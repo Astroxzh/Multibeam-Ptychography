@@ -4,13 +4,13 @@ import matplotlib.pyplot as plt
 import utils
 from scipy.signal import convolve2d
 import os
-
+ 
 #%%
 #unit: mm
 #parameter
 wavelength = 584e-9
 k = 2 * np.pi / wavelength
-N = 4096
+N = 8000
 
 #%%
 #square slits
@@ -39,7 +39,7 @@ initialWave = initialField
 
 #create mask (spiral)
 maskSize = 4e-3
-maskN = 2048
+maskN = int(N / (lightsourceSize / maskSize))
 maskdx = maskSize / maskN
 
 maskx = np.arange(-maskN / 2, maskN / 2) * maskdx

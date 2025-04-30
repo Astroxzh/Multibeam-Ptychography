@@ -21,7 +21,7 @@ lensx = np.arange(- N / 2, N / 2) * lensdx
 
 lensFocuLength = 1000
 # apertureLens = utils.circ(lensX, lensY, lensSize)
-initialWave = np.ones([N, N], type=complex)
+initialWave = np.ones([N, N], dtype='complex')
 
 lensTF = np.exp(-1.0j * k * (lensX**2 + lensY**2) / (2 * lensFocuLength))
 exitWave = initialWave * lensTF

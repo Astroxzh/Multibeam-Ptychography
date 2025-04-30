@@ -1,4 +1,5 @@
 import numpy as np
+from matplotlib.colors import LinearSegmentedColormap
 
 def circ(x, y, D):
     circle = (x**2 + y**2) < (D / 2)**2
@@ -138,3 +139,57 @@ def maskGeneration(numOfMask=8, wavelength=13.5e-9, f=0.6e-3, N=256, dx=10e-9, b
     columns = [np.vstack([maskList[i], maskList[i+1]]) for i in range(0,numOfMask,2)]
     return np.array(np.hstack(columns))
     
+def hsv2rgb(hsv: np.ndarray) -> np.ndarray:
+    rgb = np.empty_like(hsv)
+    rgb[..., 3:] = hsv[..., 3:]
+    h, s, v = hsv[..., 0], hsv[..., 1], hsv[..., 2]
+    i = (h * 6.0).astype('uint8')
+    f = (h * 6.0) - i
+    p = v * (1.0 - s)
+    q = v * (1.0 - s * f)
+    t = v * (1.0 - s * (1.0 - f))
+    i = i % 6
+    conditions = [s == 0.0, i == 1, i == 2, i == 3, i == 4, i == 5]
+    rgb[..., 0] = np.select(conditions, [v, q, p, p, t, v], default=v)
+    rgb[..., 1] = np.select(conditions, [v, v, v, q, p, p], default=t)
+    rgb[..., 2] = np.select(conditions, [v, p, t, v, v, q], default=p)
+    return rgb.astype('uint8')
+
+def complex2rgb(u, amplitudeScalingFactor=1, scalling=1):
+    h = np.angle(u)
+    h = (h + np.pi) / (2 * np.pi)
+    s = np.ones_like(h)
+    v = np.abs(u)
+    if amplitudeScalingFactor != 1:
+        v[v > amplitudeScalingFactor * np.max(v)] = amplitudeScalingFactor * np.max(v)
+    if scalling != 1:
+        local_max = np.max(v)
+        v = v / (np.max(v) + np.finfo(float).eps) * (2 ** 8 - 1)
+        print(f'ratio: {local_max / scalling}, max(v): {np.max(v)}')
+
+        v *= local_max / scalling
+        print(f'max(v)L {np.max(v)}')
+    
+    else:
+        v = v / (np.max(v) + np.finfo(float).eps) * (2 ** 8 - 1)
+
+    hsv = np.dstack([h, s, v])
+    rgb = hsv2rgb(hsv)
+    return rgb
+
+def setCustomColorMap():
+    colors = [
+        (1, 1, 1),
+        (0, 0.0875, 1),
+        (0, 0.4928, 1),
+        (0, 1, 0),
+        (1, 0.6614, 0),
+        (1, 0.4384, 0),
+        (0.8361, 0, 0),
+        (0.6505, 0, 0),
+        (0.4882, 0, 0),
+    ]
+
+    n = 255
+    cm = LinearSegmentedColormap.from_list('cmap', colors, n)
+    return cm

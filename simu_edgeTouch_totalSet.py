@@ -10,16 +10,16 @@ import os
 #parameter
 wavelength = 584e-9
 k = 2 * np.pi / wavelength
-N = 4096
+N = 8000
 
 #%%
 #square slits
-localSuqare = np.zeros([N, N // 4], dtype=complex)
-localSuqare[100 : -100, N // 4 // 4 : N // 4 - N // 4 // 4] = 1
-lightsource = np.tile(localSuqare, [1,4])
-lightsource = convolve2d(lightsource, utils.gaussian2D(5, 1).astype(np.float32), mode="same")
+# localSuqare = np.zeros([N, N // 4], dtype=complex)
+# localSuqare[100 : -100, N // 4 // 4 : N // 4 - N // 4 // 4] = 1
+# lightsource = np.tile(localSuqare, [1,4])
+# lightsource = convolve2d(lightsource, utils.gaussian2D(5, 1).astype(np.float32), mode="same")
 
-lightsourceSize = 8e-3
+lightsourceSize = 10e-3
 lightsourcedx = lightsourceSize / N
 lightsourcex = np.arange(- N / 2 , N / 2) * lightsourcedx
 [lightsourceX, lightsourceY] = np.meshgrid(lightsourcex, lightsourcex)
@@ -28,18 +28,18 @@ coorTran = [lightsourcex[0]*1000, lightsourcex[-1]*1000, lightsourcex[0]*1000, l
 # propagator = utils.angularPropagator(30,wavelength=wavelength, dx=lightsourcedx, N=N)
 # initialField = utils.angularPro(lightsource, propagator)
 # initialField = lightsource
-initialField = np.ones(np.shape(lightsource))
-
-# lensFocuLengths = [20, 25, 30, 35, 40, 50]
+initialField = np.ones([N, N])
 
 # apertureLens = utils.circ(lensX, lensY, lensSize)
+lensSize = 9e-3
+apertureLens = utils.circ(lightsourceX, lightsourceY, lensSize)
 initialWave = initialField
 # lensTF = np.exp(-1.0j * k * (lensX**2 + lensY**2) / (2 * lensFocuLength))
 
 
 #create mask (spiral)
 maskSize = 4e-3
-maskN = 2048
+maskN = int(N / (lightsourceSize / maskSize))
 maskdx = maskSize / maskN
 
 maskx = np.arange(-maskN / 2, maskN / 2) * maskdx
@@ -50,9 +50,9 @@ localMaskSize = maskSize / maskNum
 localMaskdx = localMaskSize / localMaskN
 localMaskx = np.arange(-localMaskN / 2, localMaskN / 2) * localMaskdx
 [localMaskX, localMaskY] = np.meshgrid(localMaskx, localMaskx)
-apertureSize = 245e-6
+apertureSize = 200e-6
 numOfMask = 8
-mask = np.fliplr(utils.maskGeneration(numOfMask=numOfMask, wavelength=wavelength, f=11.5e-3, N=localMaskN, dx=localMaskdx, blades_diameter=apertureSize, angle=180))
+mask = np.fliplr(utils.maskGeneration(numOfMask=numOfMask, wavelength=wavelength, f=7.5e-3, N=localMaskN, dx=localMaskdx, blades_diameter=apertureSize, angle=180))
 mask = np.pad(mask, (N-maskN)//2)
 # mask = np.tile(aperture, [4, 4])
 [maskX, maskY] = np.meshgrid(lightsourcex, lightsourcex)
@@ -63,7 +63,8 @@ mask = np.pad(mask, (N-maskN)//2)
 #illuminate lens
 # dz = 5
 # dm = [1e-3, 2e-3, 3e-3, 4e-3, 5e-3, 6e-3, 7e-3]
-lensFocuLengths = [20, 25, 30, 35, 40, 45, 50]
+# lensFocuLengths = [20, 25, 30, 35, 40, 45, 50]
+lensFocuLengths = [20]
 
 
 
@@ -76,32 +77,33 @@ lensFocuLengths = [20, 25, 30, 35, 40, 45, 50]
 # fig.suptitle(f'probe on sample plane \n f={lensFocuLength*1000}mm, ds={ds*1000}mm', y=0.60, ha='center') #记得说明，ds传到sample，dm到mask距离
 
 # ii = 0
-# cropHalfSize = 700
-# cropx = lightsourcex[N//2-cropHalfSize:N//2+cropHalfSize]
-# cropcoor = [cropx[0]*1000, cropx[-1]*1000, cropx[0]*1000, cropx[-1]*1000]
+cropHalfSize = 2000
+cropx = lightsourcex[N//2-cropHalfSize:N//2+cropHalfSize]
+cropcoor = [cropx[0]*1000, cropx[-1]*1000, cropx[0]*1000, cropx[-1]*1000]
 
 savedir = r'C:\Master Thesis\data\1 optimal probe touching'
 datapath = os.path.join(savedir, 'data')
 savepathcoor = os.path.join(datapath, 'coor.npy')
 np.save(savepathcoor, lightsourcex)
-
+steps = 2
 for lensFocuLength in lensFocuLengths:
     if lensFocuLength % 2 == 0:
-        ds = np.arange(2,lensFocuLength-2, 2)
+        ds = np.arange(2,lensFocuLength-steps-1, steps)
     elif lensFocuLength % 2 != 0:
-        ds = np.arange(2, lensFocuLength-1-2, 2)
+        ds = np.arange(2, lensFocuLength-1-steps, steps)
 
     lensTF = np.exp(-1.0j * k * (lightsourceX**2 + lightsourceY**2) / (2 * lensFocuLength/1000))
     exitWave = initialWave * lensTF
+    exitWave *= apertureLens
     
     for dzs in ds:
         if lensFocuLength*1000 % 2 == 0:
-            dm = np.arange(2,lensFocuLength-dzs, 2)
+            dm = np.arange(2,lensFocuLength-dzs, steps)
         elif lensFocuLength*1000 % 2 != 0:
-            dm = np.arange(2, lensFocuLength-1-dzs, 2)
+            dm = np.arange(2, lensFocuLength-1-dzs, steps)
         
         saveList = []
-        filename = f'f{lensFocuLength}_{dm[0]}-{dm[-1]}dm2step_{dzs}ds.npy'
+        filename = f'f{lensFocuLength}_{dm[0]}-{dm[-1]}dm{steps}step_{dzs}ds.npy'
         savepath = os.path.join(datapath, filename)
 
         
@@ -137,8 +139,6 @@ for lensFocuLength in lensFocuLengths:
             saveList.append(illuSample)
         saveArray = np.stack(saveList, axis=0)
         np.save(savepath, saveArray)
-
-# %%
 
 
 

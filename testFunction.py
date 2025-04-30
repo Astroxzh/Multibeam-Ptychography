@@ -5,7 +5,7 @@ import utils
 from scipy.signal import convolve2d
 
 #%%
-wavelength=627e-9
+wavelength=584e-9
 k = 2 * np.pi / wavelength
 N = 4096
 
@@ -21,7 +21,7 @@ localMaskx = np.arange(-localMaskN/2, localMaskN/2) * localMaskdx
 # sprial = utils.spiral_blade_mask(wavelength=627e-9, f=7.25e-3, N=N/4, dx=localMaskdx, n_blades=1, blades_diameter=200e-6, angle=0)
 # flipsprial = np.flipud(sprial)
 
-mask = np.fliplr(utils.maskGeneration(numOfMask=8, wavelength=wavelength, f=10.5e-3, N=localMaskN, dx=localMaskdx, blades_diameter=245e-6, angle=180))
+mask = np.fliplr(utils.maskGeneration(numOfMask=8, wavelength=wavelength, f=7.5e-3, N=localMaskN, dx=localMaskdx, blades_diameter=200e-6, angle=180))
 
 plt.imshow(mask,extent=[maskx[0]*1000, maskx[-1]*1000, maskx[0]*1000, maskx[-1]*1000])
 # plt.figure()
