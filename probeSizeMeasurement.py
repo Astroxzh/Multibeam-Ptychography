@@ -10,119 +10,122 @@ import numpy as np
 import matplotlib.pyplot as plt
 import utils
 from scipy.signal import convolve2d
+import os
 
-
-#%%
-#unit: m
-#parameter
-wavelength = 584e-9 #627e-9  
-k = 2 * np.pi / wavelength
-N = 8000
+from skimage.measure import regionprops, label
 
 #%%
-#light source
-lightsourceSize = 10e-3
-lightsourcedx = lightsourceSize / N
-lightsourcex = np.arange(- N / 2 , N / 2) * lightsourcedx
-[lightsourceX, lightsourceY] = np.meshgrid(lightsourcex, lightsourcex)
-translationCoor = [lightsourceX ]
-coorTran = [lightsourcex[0]*1000, lightsourcex[-1]*1000, lightsourcex[0]*1000, lightsourcex[-1]*1000]
-
-initialField = np.ones([N, N])
-
-#%% 
-#illuminate lens
-
-dz = 10e-3  # distance to mask
-
-# lens and aperture
-lensSize = 9e-3
-lensFocuLength = 20e-3
-apertureLens = utils.circ(lightsourceX, lightsourceY, lensSize)
-initialWave = initialField
-
-lensTF = np.exp(-1.0j * k * (lightsourceX**2 + lightsourceY**2) / (2 * lensFocuLength))
-
-exitWaveWrap = initialWave * lensTF #unwrap is not helping
-exitWavePhase = np.unwrap(np.unwrap(np.angle(exitWaveWrap), axis=0), axis=1)
-
-exitWave = np.abs(exitWaveWrap) * np.exp(1j * exitWavePhase)
-exitWave *= apertureLens
-
-
-#%%
-
-#propagate to mask
-propagatorMask = utils.angularPropagator(dz=dz, wavelength=wavelength, N=N, dx=lightsourcedx)
-illuMask = np.fft.ifft2(np.fft.ifftshift(np.fft.fftshift(np.fft.fft2(exitWave))*propagatorMask))
-
-
-coorTran = [lightsourcex[0]*1000, lightsourcex[-1]*1000, lightsourcex[0]*1000, lightsourcex[-1]*1000]
-
-
-#%%
-#create mask (circ aperture)
-maskSize = 4e-3
-maskN = int(N / (lightsourceSize / maskSize))
-maskdx = maskSize / maskN
-
-maskx = np.arange(-maskN / 2, maskN / 2) * maskdx
-[maskX, maskY] = np.meshgrid(maskx, maskx)
-
-maskNum = 4
-localMaskN = maskN / maskNum
-localMaskSize = maskSize / maskNum
-localMaskdx = localMaskSize / localMaskN
-localMaskx = np.arange(-localMaskN / 2, localMaskN / 2) * localMaskdx
-[localMaskX, localMaskY] = np.meshgrid(localMaskx, localMaskx)
-apertureSize = 200e-6
-numOfMask = 8
-mask = np.fliplr(utils.maskGeneration(numOfMask=numOfMask, wavelength=wavelength, f=7.5e-3, N=localMaskN, dx=localMaskdx, blades_diameter=apertureSize, angle=180))
-# mask filter, keep 2 8 9 15 mask,
-keep = [7, 8, 9, 10]
-masks = []
-# blockMask = np.zeros((4, 4), dtype=int)
-# for k in keep:
-#     i = (k-1) // 4
-#     j = (k-1) % 4
-#     blockMask[i, j] = 1
-for k in keep:
+def findPeak(data, peakNum: int = 1, peakDistance: int = 15):
+    dataCopy = data.copy()
+    peakList = []
+    for i in range(peakNum):
+        maxCoord = np.unravel_index(np.argmax(dataCopy), dataCopy.shape)
+        peakList.append(list(maxCoord))
+        i, j = maxCoord
+        rowMin = max(0, i - peakDistance)
+        rowMax = min(dataCopy.shape[0], i + peakDistance)
+        colMin = max(0, j - peakDistance)
+        colMax = min(dataCopy.shape[1], j + peakDistance)
+        dataCopy[rowMin:rowMax, colMin:colMax] = 0
+    coords = np.array(peakList)
+    sortedIdx = np.argsort(coords[:,1])
+    sortedCoords = coords[sortedIdx]
+    a = int(np.sqrt(peakNum))
+    for i in range(a):
+        row = sortedCoords[i * a:(i+1) * a, :]
+        sortedRowIdx = np.argsort(row[:, 0])
+        sortedRow = row[sortedRowIdx]
+        sortedCoords[i * a:(i+1) * a, :] = sortedRow
     
-    blockMask = np.zeros((4, 4), dtype=int)
-    i = (k-1) // 4
-    j = (k-1) % 4
-    blockMask[i, j] = 1
+    return sortedCoords
 
-    maskFilter = np.kron(blockMask, np.ones((int(localMaskN), int(localMaskN)), dtype=int))
-
-    maskNew = mask * maskFilter
-    masks.append(np.pad(maskNew, (N-maskN)//2))
-# maskFilter = np.kron(blockMask, np.ones((int(localMaskN), int(localMaskN)), dtype=int))
-# mask *= maskFilter
 
 #%%
-# mask = np.tile(aperture, [4, 4])
-[maskX, maskY] = np.meshgrid(lightsourcex, lightsourcex)
 
-exitWaveMask = illuMask * mask
-plt.figure()
-plt.imshow(np.abs(exitWaveMask)**2, extent=coorTran)
+#create file names
+lensFocuLengths = [20]
+steps = 2
+filenames = []
+for lensFocuLength in lensFocuLengths:
+    if lensFocuLength % 2 == 0:
+        ds = np.arange(4,lensFocuLength-steps-1, steps)
+    elif lensFocuLength % 2 != 0:
+        ds = np.arange(4, lensFocuLength-1-steps, steps)
+    for dzs in ds:
+        if lensFocuLength*1000 % 2 == 0:
+            dm = np.arange(2,lensFocuLength-dzs, steps)
+        elif lensFocuLength*1000 % 2 != 0:
+            dm = np.arange(2, lensFocuLength-1-dzs, steps)
+        for dzm in dm:
+            filenames.append(f'f{lensFocuLength}_{dzm}dm{steps}step_{dzs}ds.npy')
+
+
+#%%
+# dataSet = np.squeeze(dataSet)
+# filename = 'f20_2-4dm2step_14ds.npy'
+# filePath = os.path.join(folderPath, filename)
+# dataSet = np.load(filePath)
+folderPath = r'C:\Master Thesis\data\1 optimal probe touching\data'
+resultProbeSize = np.zeros([7,7])
+jj = 0
+
+N = 8000
+size = 10e-3
+dx = size / N
+result = []
+for filename in filenames:
+    filePath = os.path.join(folderPath, filename)
+    dataSet = np.load(filePath)
+    temp = np.zeros([np.shape(dataSet)[2]])
+    for ii in range(np.shape(dataSet)[2]):
+        data = np.abs(dataSet[:, :, ii] ** 2)
+        # peaks = findPeak(data, peakNum=1)
+        # peaksX = peaks[:, 0]
+        # peaksy = peaks[:, 1]
+        mask = data > data.max()*0.05
+        labelImg = label(mask)
+
+        props = regionprops(label_image=labelImg, intensity_image=data)
+        p = props[0]
+
+        Ixx, Ixy, Iyy = p.inertia_tensor.flat
+        E = p.imtensity_image.sum()
+        sigmaR = np.sqrt((Ixx + Iyy) / E)
+        rmsRadius = sigmaR * dx
+        temp[ii] = rmsRadius
+    meanProbeSize = np.mean(temp)
+    result.append(meanProbeSize)
+
 #%%
 
-#4f system mag effect
-# demagWave = utils.demagFourier(exitWaveMask, 4)
-demagWave = exitWaveMask
+pattern = [7, 6, 5, 4, 3, 2, 1]
+nRows = len(pattern)
+nCols = max(pattern)
+
+idx = 0
+for i, length in enumerate(pattern):
+    chunk = result[idx: idx + length]
+    resultProbeSize[i, :chunk.size] = chunk
+    idx += length
+
+resultSizeFiltered = resultProbeSize[:,:-1]
+
+dsVals = np.arange(4, 18, 2)
+dmVals = np.arange(2, 14, 2)
+
+DM, DS = np.meshgrid(dmVals, dsVals)
+
+# heat map
+plt.figure(figsize=(6,5))
+pcm = plt.pcolormesh(DM, DS, resultSizeFiltered, shading='auto')
+plt.colorbar(pcm, label='mm')
+plt.xlabel('dm/mm')
+plt.ylabel('ds/mm')
+plt.title('probe size vs ds and dm')
+plt.tight_layout()
+
+
 
 #%%
-#propagate to sample plane
-ds = 6e-3  # distance to sample after mask
-propagatorSample = utils.angularPropagator(dz=ds, wavelength=wavelength, N=N, dx=lightsourcedx)
-illuSample = np.fft.ifft2(np.fft.ifftshift(np.fft.fftshift(np.fft.fft2(demagWave))*propagatorSample))
-# %%
-
-
-
-
-
 plt.show()
 # %%
