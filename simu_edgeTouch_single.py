@@ -73,7 +73,7 @@ coorTran = [lightsourcex[0]*1000, lightsourcex[-1]*1000, lightsourcex[0]*1000, l
 # plt.imshow(np.abs(illuMask)**2, extent=coorTran)
 
 #%%
-#create mask (circ aperture)
+#create mask (spiral aperture)
 maskSize = 4e-3
 maskN = int(N / (lightsourceSize / maskSize))
 maskdx = maskSize / maskN

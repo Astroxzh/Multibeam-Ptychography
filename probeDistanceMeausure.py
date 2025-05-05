@@ -95,49 +95,89 @@ for filename in filenames:
         resultDistance[jj, ii] = meanDistance
     jj += 1
 
-resultDistanceF = resultDistance[:,:-1]
+
+#%%
+
+resultDistanceFiltered = resultDistance[:,:-1]
 # plt.figure()
 # plt.imshow(np.log(data)+1)
 # plt.scatter(peaksX, peaksY, s=20, marker='o', linewidths=1.2)
 
 #coordinates
 dsVals = np.arange(4, 18, 2)
-dmVals = np.arange(2, 12, 2)
+dmVals = np.arange(2, 14, 2)
 
 DM, DS = np.meshgrid(dmVals, dsVals)
 
 # heat map
 plt.figure(figsize=(6,5))
-pcm = plt.pcolormesh(DM, DS, data, shading='auto')
+pcm = plt.pcolormesh(DM, DS, resultDistanceFiltered, shading='auto')
 plt.colorbar(pcm, label='mm')
-plt.xlabel('dm (mm)')
-plt.ylabel('ds (mm)')
-plt.title('Probe Distance vs ds and dm')
+plt.xlabel('dm/mm')
+plt.ylabel('ds/mm')
+plt.title('probe distance vs ds and dm')
 plt.tight_layout()
 
 #%%
 #analyze and fit 4ds with changing dm and 2dm with changing ds
 
-ds4mm = resultDistanceF[0, :]
-dm2mm = resultDistanceF[:, 0]
+ds4mm = resultDistanceFiltered[0, :]
+dm2mm = resultDistanceFiltered[:, 0]
 
-coeds = np.polyfit(dmVals, ds4mm, 1)
+coeds = np.polyfit(dmVals, ds4mm, 2)
 fitds = np.poly1d(coeds)
 dsFitx = np.linspace(dmVals[0], dmVals[-1], 100)
 dsFity = fitds(dsFitx)
+dsPred = fitds(dmVals)
+residualsDsFit = ds4mm - dsPred
 
 coedm = np.polyfit(dsVals, dm2mm, 1)
 fitdm = np.poly1d(coedm)
 dmFitx = np.linspace(dsVals[0], dsVals[-1], 100)
 dmFity = fitdm(dmFitx)
+dmPred = fitdm(dsVals)
+residualsDmFit = dm2mm - dmPred
 
 plt.figure()
-plt.scatter(dmVals, ds4mm)
-plt.plot(dsFitx, dsFity)
+fig, (axData, axResid) = plt.subplots(
+    2, 1,
+    sharex=True,
+    gridspec_kw={'height_ratios': [3, 1], 'hspace': 0.1},
+    figsize=(6, 6)
+)
+axData.scatter(dmVals, ds4mm, label='data')
+axData.plot(dsFitx, dsFity, label=f'{fitds[2]:.7f}$x^2${fitds[1]:.7f}$x$+{fitds[0]:.7f}')
+axData.set_title('probe distance vs dm, @ds=4mm')
+axResid.set_xlabel('dm/mm')
+axData.set_ylabel('probe distance/mm')
+axData.legend()
+
+axResid.scatter(dmVals, residualsDsFit)
+axResid.set_ylabel('residual')
+axResid.axhline(0, c='gray')
 
 plt.figure()
-plt.scatter(dsVals, dm2mm)
-plt.plot(dmFitx, dmFity)
+# plt.scatter(dsVals, dm2mm)
+# plt.plot(dmFitx, dmFity)
+# plt.title('ds fitting, @dm=2mm')
+# plt.xlabel('ds/mm')
+# plt.ylabel('probe distance')
+fig, (axData, axResid) = plt.subplots(
+    2, 1,
+    sharex=True,
+    gridspec_kw={'height_ratios': [3, 1], 'hspace': 0.1},
+    figsize=(6, 6)
+)
+axData.scatter(dsVals, dm2mm, label='data')
+axData.plot(dmFitx, dmFity, label=f'{fitdm[1]:.5f}$x$+{fitdm[0]:.5f}')
+axData.set_title('probe distance vs ds, @dm=2mm')
+axResid.set_xlabel('ds/mm')
+axData.set_ylabel('probe distance/mm')
+axData.legend()
+
+axResid.scatter(dsVals, residualsDmFit)
+axResid.set_ylabel('residual')
+axResid.axhline(0, c='gray')
 
 #%%
 
