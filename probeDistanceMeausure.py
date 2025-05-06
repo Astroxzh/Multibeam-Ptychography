@@ -68,7 +68,7 @@ resultDistance = np.zeros([7,7])
 jj = 0
 
 N = 8000
-size = 10e-3
+size = 10e-3  #for old f20mm data, new should be 4000 and 4e-3
 dx = size / N
 
 for filename in filenames:
