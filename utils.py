@@ -240,3 +240,28 @@ def aspw(u, wavelength, dx, dz):
     U = fft2c(u)
     u_new = ifft2c(U * H)
     return u_new
+
+def encircledEnergyRadius(I, fraction=0.95, pixel_size=1.0):
+    
+    ny, nx = I.shape
+    y_idx, x_idx = np.indices(I.shape)
+    total_energy = I.sum()
+    
+    # x_c = (I * x_idx).sum() / total_energy
+    # y_c = (I * y_idx).sum() / total_energy
+    x_c, y_c = np.unravel_index(np.argmax(I), I.shape)
+
+    dx = dy = pixel_size
+    if not np.isscalar(pixel_size):
+        dx, dy = pixel_size
+    dist = np.sqrt(((x_idx - x_c) * dx)**2 + ((y_idx - y_c) * dy)**2)
+    
+    flat_I    = I.ravel()
+    flat_dist = dist.ravel()
+    order = np.argsort(flat_dist)
+    cum_intensity = np.cumsum(flat_I[order])
+    
+    target = fraction * total_energy
+    idx = np.searchsorted(cum_intensity, target)
+    r = flat_dist[order][idx]
+    return r
