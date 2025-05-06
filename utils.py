@@ -1,6 +1,8 @@
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 
+
+
 def circ(x, y, D):
     circle = (x**2 + y**2) < (D / 2)**2
     return circle
@@ -193,3 +195,48 @@ def setCustomColorMap():
     n = 255
     cm = LinearSegmentedColormap.from_list('cmap', colors, n)
     return cm
+
+def ifft2c(array):
+    """
+    performs 2 - dimensional inverse Fourier transformation, where energy is reserved abs(G)**2==abs(fft2c(g))**2
+    if G is two - dimensional, fft2c(G) yields the 2D iDFT of G
+    if G is multi - dimensional, fft2c(G) yields the 2D iDFT of G along the last two axes
+    :param array:
+    :return:
+    """
+    return np.fft.fftshift(np.fft.ifft2(np.fft.ifftshift(array), norm='ortho'))
+
+
+def fft2c(array):
+    """
+    performs 2 - dimensional unitary Fourier transformation, where energy is reserved abs(g)**2==abs(fft2c(g))**2
+    if g is two - dimensional, fft2c(g) yields the 2D DFT of g
+    if g is multi - dimensional, fft2c(g) yields the 2D DFT of g along the last two axes
+    :param array:
+    :return:
+    """
+    return np.fft.fftshift(np.fft.fft2(np.fft.ifftshift(array), norm='ortho'))
+
+def aspw(u, wavelength, dx, dz):
+
+    k = 2 * np.pi / wavelength
+    # source coordinates, this assumes that the field is NxN pixels
+    N = u.shape[-1]
+    L = N * dx
+    linspacex = np.linspace(-N / 2, N / 2, N, endpoint=False).reshape(1, N)
+    Fx = linspacex / L
+    Fy = Fx.reshape(N, 1)
+
+    f_max = 1 / (wavelength * np.sqrt(1 + (2 * dz / L) ** 2))
+    W = circ(Fx, Fy, 2 * f_max)
+    # w accounts for circular symmetry of transfer function and imposes bandlimit to avoid sampling issues
+    w = 1 / wavelength ** 2 - Fx ** 2 - Fy ** 2
+    w[w >= 0] = np.sqrt(w[w >= 0])
+    w[w < 0] = 0
+    # w = np.sqrt(w, dtype=complex)
+    H = np.exp(1.j * 2 * np.pi * dz * w) * W
+    # H = np.exp(1.j * k * dz * w) * W
+
+    U = fft2c(u)
+    u_new = ifft2c(U * H)
+    return u_new
