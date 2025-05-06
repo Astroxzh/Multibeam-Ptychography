@@ -10,7 +10,7 @@ from scipy.signal import convolve2d
 #parameter
 wavelength = 584e-9 #627e-9  
 k = 2 * np.pi / wavelength
-N = 8000
+N = 4000
 
 #create mask (spiral aperture)
 maskSize = 4e-3
@@ -31,12 +31,9 @@ totalMaskx = np.arange(-N/2, N/2)*localMaskdx
 
 apertureSize = 200e-6
 numOfMask = 8
-# aperture = utils.circ(localMaskX, localMaskY, apertureSize)
-# aperture = convolve2d(aperture, utils.gaussian2D(5, 1).astype(np.float32), mode="same")
 # aperture = utils.spiral_blade_mask(wavelength=wavelength, N=localMaskN, f=5e-3, dx=localMaskdx, n_blades=4, blades_diameter=200e-6)
 mask = np.fliplr(utils.maskGeneration(numOfMask=numOfMask, wavelength=wavelength, f=7.5e-3, N=localMaskN, dx=localMaskdx, blades_diameter=apertureSize, angle=180))
 mask = np.pad(mask, (N-maskN)//2)
-# mask = np.tile(aperture, [4, 4])
 [maskX, maskY] = np.meshgrid(localMaskx, localMaskx)
 coorTran = [totalMaskx[0]*1000, totalMaskx[-1]*1000, totalMaskx[0]*1000, totalMaskx[-1]*1000]
 plt.figure(figsize=(4,4), dpi=100)

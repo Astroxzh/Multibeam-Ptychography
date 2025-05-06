@@ -65,7 +65,7 @@ for lensFocuLength in lensFocuLengths:
 # filename = 'f20_2-4dm2step_14ds.npy'
 # filePath = os.path.join(folderPath, filename)
 # dataSet = np.load(filePath)
-folderPath = r'C:\Master Thesis\data\1 optimal probe touching\data'
+folderPath = r'C:\Master Thesis\data\1 optimal probe touching\data\f20_probeSizeMeasurement\data'
 resultProbeSize = np.zeros([7,7])
 jj = 0
 
@@ -76,25 +76,33 @@ result = []
 for filename in filenames:
     filePath = os.path.join(folderPath, filename)
     dataSet = np.load(filePath)
-    temp = np.zeros([np.shape(dataSet)[2]])
-    for ii in range(np.shape(dataSet)[2]):
-        data = np.abs(dataSet[:, :, ii] ** 2)
+    temp = np.zeros([np.shape(dataSet)[0]])
+    for ii in range(np.shape(dataSet)[0]):
+        data = np.abs(dataSet[ii, :, :] ** 2)
         # peaks = findPeak(data, peakNum=1)
         # peaksX = peaks[:, 0]
         # peaksy = peaks[:, 1]
-        mask = data > data.max()*0.05
-        labelImg = label(mask)
+        xMax, yMax = np.unravel_index(np.argmax(data), data.shape)
+        cropData = data[xMax-1000:xMax+1000, yMax-1000:yMax+1000]
+        # mask = cropData > cropData.max()*0.05
+        # labelImg = label(mask)
 
-        props = regionprops(label_image=labelImg, intensity_image=data)
-        p = props[0]
+        # props = regionprops(label_image=labelImg, intensity_image=cropData)
+        # p = props[0]
 
-        Ixx, Ixy, Iyy = p.inertia_tensor.flat
-        E = p.imtensity_image.sum()
-        sigmaR = np.sqrt((Ixx + Iyy) / E)
-        rmsRadius = sigmaR * dx
-        temp[ii] = rmsRadius
+        # RMS radius too strict?
+        # tensor = p.inertia_tensor
+        # Ixx = tensor[0, 0]
+        # Ixy = tensor[0, 1]
+        # Iyy = tensor[1, 1]
+        # E = p.intensity_image.sum()
+        # sigmaR = np.sqrt((Ixx + Iyy) / E)
+        # rmsRadius = sigmaR * dx
+        radius = utils.encircledEnergyRadius(cropData, fraction=0.8, pixel_size=(10/8000))
+        temp[ii] = radius
     meanProbeSize = np.mean(temp)
     result.append(meanProbeSize)
+
 
 #%%
 
@@ -105,10 +113,14 @@ nCols = max(pattern)
 idx = 0
 for i, length in enumerate(pattern):
     chunk = result[idx: idx + length]
-    resultProbeSize[i, :chunk.size] = chunk
+    resultProbeSize[i, :len(chunk)] = chunk
     idx += length
 
 resultSizeFiltered = resultProbeSize[:,:-1]
+
+fileName = 'ResultSize.npy'
+filepath = os.path.join(folderPath, fileName)
+np.save(filepath, np.array(resultSizeFiltered))
 
 dsVals = np.arange(4, 18, 2)
 dmVals = np.arange(2, 14, 2)
@@ -124,7 +136,32 @@ plt.ylabel('ds/mm')
 plt.title('probe size vs ds and dm')
 plt.tight_layout()
 
+#%%
+dm2mm = resultSizeFiltered[:, 0]
+coedm = np.polyfit(dsVals, dm2mm, 1)
+fitdm = np.poly1d(coedm)
+dmFitx = np.linspace(dsVals[0], dsVals[-1], 100)
+dmFity = fitdm(dmFitx)
+dmPred = fitdm(dsVals)
+residualsDmFit = dm2mm - dmPred
 
+plt.figure()
+fig, (axData, axResid) = plt.subplots(
+    2, 1,
+    sharex=True,
+    gridspec_kw={'height_ratios': [3, 1], 'hspace': 0.1},
+    figsize=(6, 6)
+)
+axData.scatter(dsVals, dm2mm, label='data')
+axData.plot(dmFitx, dmFity, label=f'{fitdm[1]:.5f}$x$+{fitdm[0]:.5f}')
+axData.set_title('probe size vs ds, @dm=2mm')
+axResid.set_xlabel('ds/mm')
+axData.set_ylabel('probe size/mm')
+axData.legend()
+
+axResid.scatter(dsVals, residualsDmFit)
+axResid.set_ylabel('residual')
+axResid.axhline(0, c='gray')
 
 #%%
 plt.show()

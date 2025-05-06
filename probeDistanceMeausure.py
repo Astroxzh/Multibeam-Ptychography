@@ -63,7 +63,7 @@ del filenames[0]
 # filename = 'f20_2-4dm2step_14ds.npy'
 # filePath = os.path.join(folderPath, filename)
 # dataSet = np.load(filePath)
-folderPath = r'C:\Master Thesis\data\1 optimal probe touching\data'
+folderPath = r'C:\Master Thesis\data\1 optimal probe touching\data\f20_fullMaskPattern'
 resultDistance = np.zeros([7,7])
 jj = 0
 
@@ -102,7 +102,9 @@ resultDistanceFiltered = resultDistance[:,:-1]
 # plt.figure()
 # plt.imshow(np.log(data)+1)
 # plt.scatter(peaksX, peaksY, s=20, marker='o', linewidths=1.2)
-
+fileName = 'ResultDistance.npy'
+filepath = os.path.join(folderPath, fileName)
+np.save(filepath, np.array(resultDistanceFiltered))
 #coordinates
 dsVals = np.arange(4, 18, 2)
 dmVals = np.arange(2, 14, 2)
@@ -157,11 +159,6 @@ axResid.set_ylabel('residual')
 axResid.axhline(0, c='gray')
 
 plt.figure()
-# plt.scatter(dsVals, dm2mm)
-# plt.plot(dmFitx, dmFity)
-# plt.title('ds fitting, @dm=2mm')
-# plt.xlabel('ds/mm')
-# plt.ylabel('probe distance')
 fig, (axData, axResid) = plt.subplots(
     2, 1,
     sharex=True,
