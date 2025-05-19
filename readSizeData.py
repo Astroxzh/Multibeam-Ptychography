@@ -9,7 +9,7 @@ from scipy.stats import trim_mean
 #%%
 
 folderPath = r'C:\Master Thesis\data\1 optimal probe touching\data\f20_probeSizeMeasurement\data'
-fileName = 'f20_2dm2step_4ds.npy'
+fileName = 'f20_6dm2step_4ds.npy'
 filePath = os.path.join(folderPath, fileName)
 
 dataSet = np.load(filePath)

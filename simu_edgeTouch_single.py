@@ -48,7 +48,7 @@ plt.show()
 #%%
 #Illumination params
 f=20e-3
-dm=8e-3
+dm=6e-3
 illu_wavefront = np.exp(-1.0j * k * (totalMaskX**2 + totalMaskY**2) / (2 * (f-dm)))
 # plt.figure(figsize=(4,4), dpi=100)
 # plt.imshow(utils.complex2rgb(illu_wavefront), extent=coorTran)
@@ -60,7 +60,7 @@ illu_wavefront = np.exp(-1.0j * k * (totalMaskX**2 + totalMaskY**2) / (2 * (f-dm
 
 
 # #propagate to sample plane
-ds = 4e-3  # distance to sample after mask
+ds = 6e-3  # distance to sample after mask
 propagated_field = utils.aspw(mask*illu_wavefront, wavelength, dx=maskdx, dz=ds)
 plt.figure(figsize=(4,4), dpi=100)
 plt.imshow(np.log10(abs(propagated_field)+1), extent=coorTran, cmap=utils.setCustomColorMap())

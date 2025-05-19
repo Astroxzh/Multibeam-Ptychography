@@ -6,14 +6,12 @@ from scipy.signal import convolve2d
 import os
 
 #%%
-#unit: mm
-#parameter
-wavelength = 584e-9
-k = 2 * np.pi / wavelength
+wavelengths = [627e-9, 591e-9, 563e-9, 541e-9]
+# k = 2 * np.pi / wavelength
 N = 4000
 
 #%%
-#create mask (spiral)
+#create mask (spiral aperture)
 maskSize = 4e-3
 maskN = N
 maskdx = maskSize / maskN
@@ -32,36 +30,30 @@ totalMaskx = np.arange(-N/2, N/2)*localMaskdx
 
 apertureSize = 200e-6
 numOfMask = 8
-mask = np.fliplr(utils.maskGeneration(numOfMask=numOfMask, wavelength=wavelength, f=7.5e-3, N=localMaskN, dx=localMaskdx, blades_diameter=apertureSize, angle=180))
+# aperture = utils.spiral_blade_mask(wavelength=wavelength, N=localMaskN, f=5e-3, dx=localMaskdx, n_blades=4, blades_diameter=200e-6)
+mask = np.fliplr(utils.maskGenerationMultiWavelength(numOfMask=numOfMask, wavelength=wavelengths, N=localMaskN, dx=localMaskdx, blades_diameter=apertureSize, angle=180))
 mask = np.pad(mask, (N-maskN)//2)
 [maskX, maskY] = np.meshgrid(localMaskx, localMaskx)
 coorTran = [totalMaskx[0]*1000, totalMaskx[-1]*1000, totalMaskx[0]*1000, totalMaskx[-1]*1000]
-# plt.figure(figsize=(4,4), dpi=100)
-# plt.imshow(np.abs(mask), extent=coorTran, cmap='gray')
-# plt.xlabel('mm')
-# plt.ylabel('mm')
-# plt.title('mask')
-# plt.tight_layout()
-# # plt.show()
+#multiwavelength band mask
+regionMask = [mask[:,0:maskN//4], mask[:,maskN//4:maskN//4*2],mask[:,maskN//4*2:maskN//4*3],mask[:,maskN//4*3:maskN//4*4]]
+regionMask = []
+for ii in range(4):
+    subMask = np.zeros([maskN, maskN])
+    subMask[:,maskN//4*ii:maskN//4*(ii+1)] = 1
+    regionMask.append(subMask)
 
-#%% 
-#illuminate lens
-# dz = 5
-# dms = [1e-3, 2e-3, 3e-3, 4e-3, 5e-3, 6e-3, 7e-3]
-# fs = [20, 25, 30, 35, 40, 45, 50]
-fs = [40]
-
-
-# ii = 0
-# cropHalfSize = 2000
-# cropx = lightsourcex[N//2-cropHalfSize:N//2+cropHalfSize]
-# cropcoor = [cropx[0]*1000, cropx[-1]*1000, cropx[0]*1000, cropx[-1]*1000]
-
+#%%
+#propagation
+#params
 savedir = r'C:\Master Thesis\data\1 optimal probe touching\data\f40'
 datapath = os.path.join(savedir, 'probeDistance')
 savepathcoor = os.path.join(datapath, 'coor.npy')
 np.save(savepathcoor, totalMaskx)
+
 steps = 2
+fs = [20]
+
 for f in fs:
     if f % 2 == 0:
         dss = np.arange(2,f-steps-1, steps)
@@ -79,31 +71,17 @@ for f in fs:
         savepath = os.path.join(datapath, filename)
         
         for dm in dms:
-            illu_wavefront = np.exp(-1.0j * k * (totalMaskX**2 + totalMaskY**2) / (2 * (f/1000-dm/1000)))
-            propagated_field = utils.aspw(mask*illu_wavefront, wavelength, dx=maskdx, dz=ds/1000)
-            saveList.append(propagated_field)
+            for ii in range(len(wavelengths)):
+                k = 2 * np.pi / wavelengths[ii]
+                illu_wavefront = np.exp(-1.0j * k * (totalMaskX**2 + totalMaskY**2) / (2 * (f/1000-dm/1000)))
+                propagated_field = utils.aspw(regionMask[ii]*mask*illu_wavefront, wavelengths[ii], dx=maskdx, dz=ds)
+                Itotal += (propagated_field)
+            
+            saveList.append(Itotal)
         saveArray = np.stack(saveList, axis=0)
         np.save(savepath, saveArray)
 
 
 
-# %%
-
-# savedir = r'C:\Master Thesis\data\1 optimal probe touching'
-
-# saveArray = np.stack(saveList, axis=0)
-# datapath = os.path.join(savedir, 'data')
-# filename = f'f{f*1000}_{dm[0]*1000}-{dm[-1]*1000}dm1step_{ds*1000}ds.npy'
-# savepath = os.path.join(datapath, filename)
-# savepathcoor = os.path.join(datapath, 'coor.npy')
-# np.save(savepath, saveArray)
-# np.save(savepathcoor, cropcoor)
-
-
-#%%
-# figName = f'f{f*1000}_{dm[0]*1000}-{dm[-1]*1000}dm1step_{ds*1000}ds.png'
-# figpath = os.path.join(savedir, figName)
-# plt.savefig(figpath, dpi=300, bbox_inches='tight', pad_inches=0.05)
-# plt.show()
 
 #%%

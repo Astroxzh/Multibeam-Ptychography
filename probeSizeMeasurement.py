@@ -43,7 +43,7 @@ def findPeak(data, peakNum: int = 1, peakDistance: int = 15):
 #%%
 
 #create file names
-lensFocuLengths = [20]
+lensFocuLengths = [40]
 steps = 2
 filenames = []
 for lensFocuLength in lensFocuLengths:
@@ -65,12 +65,12 @@ for lensFocuLength in lensFocuLengths:
 # filename = 'f20_2-4dm2step_14ds.npy'
 # filePath = os.path.join(folderPath, filename)
 # dataSet = np.load(filePath)
-folderPath = r'C:\Master Thesis\data\1 optimal probe touching\data\f20_probeSizeMeasurement\data'
-resultProbeSize = np.zeros([7,7])
+folderPath = r'C:\Master Thesis\data\1 optimal probe touching\data\f40\probeSize'
+resultProbeSize = np.zeros([17,17])
 jj = 0
 
-N = 8000
-size = 10e-3
+N = 4000
+size = 4e-3
 dx = size / N
 result = []
 for filename in filenames:
@@ -83,7 +83,13 @@ for filename in filenames:
         # peaksX = peaks[:, 0]
         # peaksy = peaks[:, 1]
         xMax, yMax = np.unravel_index(np.argmax(data), data.shape)
-        cropData = data[xMax-1000:xMax+1000, yMax-1000:yMax+1000]
+        # edge
+        H, W = data.shape
+        x1 = max(0, xMax - 1000)
+        x2 = min(H, xMax + 1000)
+        y1 = max(0, yMax - 1000)
+        y2 = min(W, yMax + 1000)
+        cropData = data[x1:x2, y1:y2]
         # mask = cropData > cropData.max()*0.05
         # labelImg = label(mask)
 
@@ -98,7 +104,7 @@ for filename in filenames:
         # E = p.intensity_image.sum()
         # sigmaR = np.sqrt((Ixx + Iyy) / E)
         # rmsRadius = sigmaR * dx
-        radius = utils.encircledEnergyRadius(cropData, fraction=0.8, pixel_size=(10/8000))
+        radius = utils.encircledEnergyRadius(cropData, fraction=0.8, pixel_size=(4/4000))
         temp[ii] = radius
     meanProbeSize = np.mean(temp)
     result.append(meanProbeSize)
@@ -106,7 +112,7 @@ for filename in filenames:
 
 #%%
 
-pattern = [7, 6, 5, 4, 3, 2, 1]
+pattern = [17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
 nRows = len(pattern)
 nCols = max(pattern)
 
@@ -118,12 +124,12 @@ for i, length in enumerate(pattern):
 
 resultSizeFiltered = resultProbeSize[:,:-1]
 
-fileName = 'ResultSize.npy'
+fileName = 'ResultSize80%.npy'
 filepath = os.path.join(folderPath, fileName)
 np.save(filepath, np.array(resultSizeFiltered))
 
-dsVals = np.arange(4, 18, 2)
-dmVals = np.arange(2, 14, 2)
+dsVals = np.arange(4, 38, 2)
+dmVals = np.arange(2, 34, 2)
 
 DM, DS = np.meshgrid(dmVals, dsVals)
 
@@ -133,7 +139,7 @@ pcm = plt.pcolormesh(DM, DS, resultSizeFiltered, shading='auto')
 plt.colorbar(pcm, label='mm')
 plt.xlabel('dm/mm')
 plt.ylabel('ds/mm')
-plt.title('probe size vs ds and dm')
+plt.title('probe size vs ds and dm \n @80% encircled energy')
 plt.tight_layout()
 
 #%%

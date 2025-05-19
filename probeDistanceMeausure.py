@@ -42,12 +42,12 @@ def findPeak(data, peakNum: int = 16, peakDistance: int = 15):
 #%%
 
 #create file names
-lensFocuLengths = [20]
+lensFocuLengths = [40]
 steps = 2
 filenames = []
 for lensFocuLength in lensFocuLengths:
     if lensFocuLength % 2 == 0:
-        ds = np.arange(2,lensFocuLength-steps-1, steps)
+        ds = np.arange(2, lensFocuLength-steps-1, steps)
     elif lensFocuLength % 2 != 0:
         ds = np.arange(2, lensFocuLength-1-steps, steps)
     for dzs in ds:
@@ -63,12 +63,12 @@ del filenames[0]
 # filename = 'f20_2-4dm2step_14ds.npy'
 # filePath = os.path.join(folderPath, filename)
 # dataSet = np.load(filePath)
-folderPath = r'C:\Master Thesis\data\1 optimal probe touching\data\f20_fullMaskPattern'
-resultDistance = np.zeros([7,7])
+folderPath = r'C:\Master Thesis\data\1 optimal probe touching\data\f40\probeDistance'
+resultDistance = np.zeros([17,17])
 jj = 0
 
-N = 8000
-size = 10e-3  #for old f20mm data, new should be 4000 and 4e-3
+N = 4000
+size = 4e-3  #for old f20mm data, new should be 4000 and 4e-3
 dx = size / N
 
 for filename in filenames:
@@ -106,8 +106,13 @@ fileName = 'ResultDistance.npy'
 filepath = os.path.join(folderPath, fileName)
 np.save(filepath, np.array(resultDistanceFiltered))
 #coordinates
-dsVals = np.arange(4, 18, 2)
-dmVals = np.arange(2, 14, 2)
+# for 20mm
+# dsVals = np.arange(4, 18, 2) 
+# dmVals = np.arange(2, 14, 2)
+
+#for 40mm
+dsVals = np.arange(4, 38, 2) 
+dmVals = np.arange(2, 34, 2)
 
 DM, DS = np.meshgrid(dmVals, dsVals)
 

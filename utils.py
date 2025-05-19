@@ -140,7 +140,24 @@ def maskGeneration(numOfMask=8, wavelength=13.5e-9, f=0.6e-3, N=256, dx=10e-9, b
         maskList.append(np.vstack([submask, flipedsubmask]))
     columns = [np.vstack([maskList[i], maskList[i+1]]) for i in range(0,numOfMask,2)]
     return np.array(np.hstack(columns))
-    
+
+def maskGenerationMultiWavelength(numOfMask=8, wavelength=[541e-9, 563e-9, 591e-9, 627e-9], 
+                                  f=[8.25e-3, 8e-3, 7.5e-3, 7.25e-3], 
+                                  N=256, dx=10e-9, blades_diameter=200e-6 , angle=None, factor=0):
+    maskList = []
+    jj = 0
+    for ii in range(numOfMask):
+        wl = wavelength[ii // 2]
+        ff = f[ii // 2]
+        submask = spiral_blade_mask(wavelength=wl, f=ff, N=N, dx=dx, n_blades=ii + 1, blades_diameter=blades_diameter, angle=angle, factor=factor)
+        flipped = np.flipud(submask)
+        maskList.append(np.vstack([submask, flipped]))
+    columns = []
+    for i in range(0, numOfMask, 2):
+        columns.append(np.vstack([maskList[i], maskList[i + 1]]))
+    combined = np.hstack(columns)
+    return np.array(combined)
+
 def hsv2rgb(hsv: np.ndarray) -> np.ndarray:
     rgb = np.empty_like(hsv)
     rgb[..., 3:] = hsv[..., 3:]
@@ -265,3 +282,22 @@ def encircledEnergyRadius(I, fraction=0.95, pixel_size=1.0):
     idx = np.searchsorted(cum_intensity, target)
     r = flat_dist[order][idx]
     return r
+
+def linear_overlap(D, s):
+    """Fractional overlap along one axis."""
+    return max(0.0, 1 - s/D)
+
+def area_overlap(D, s):
+    """Fraction of circular beam-area overlapped."""
+    R = D/2
+    d = s
+    if d >= 2*R:
+        return 0.0
+    term1 = 2 * R**2 * np.arccos(d/(2*R))
+    term2 = 0.5 * d * np.sqrt(4*R**2 - d**2)
+    return (term1 - term2) / (np.pi * R**2)
+
+def fov(r, d):
+    if d >= 2 * r:
+        return 0.0
+    return 3 * d + 2 * r
