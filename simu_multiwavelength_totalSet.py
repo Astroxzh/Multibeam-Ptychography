@@ -35,8 +35,8 @@ mask = np.fliplr(utils.maskGenerationMultiWavelength(numOfMask=numOfMask, wavele
 mask = np.pad(mask, (N-maskN)//2)
 [maskX, maskY] = np.meshgrid(localMaskx, localMaskx)
 coorTran = [totalMaskx[0]*1000, totalMaskx[-1]*1000, totalMaskx[0]*1000, totalMaskx[-1]*1000]
+
 #multiwavelength band mask
-regionMask = [mask[:,0:maskN//4], mask[:,maskN//4:maskN//4*2],mask[:,maskN//4*2:maskN//4*3],mask[:,maskN//4*3:maskN//4*4]]
 regionMask = []
 for ii in range(4):
     subMask = np.zeros([maskN, maskN])
@@ -46,13 +46,13 @@ for ii in range(4):
 #%%
 #propagation
 #params
-savedir = r'C:\Master Thesis\data\1 optimal probe touching\data\f40'
+savedir = r'C:\Master Thesis\data\1 optimal probe touching\multiWavelength\f40'
 datapath = os.path.join(savedir, 'probeDistance')
 savepathcoor = os.path.join(datapath, 'coor.npy')
 np.save(savepathcoor, totalMaskx)
 
 steps = 2
-fs = [20]
+fs = [40]
 
 for f in fs:
     if f % 2 == 0:
@@ -61,9 +61,9 @@ for f in fs:
         dss = np.arange(2, f-1-steps, steps)
     
     for ds in dss:
-        if f*1000 % 2 == 0:
+        if f % 2 == 0:
             dms = np.arange(2,f-ds, steps)
-        elif f*1000 % 2 != 0:
+        elif f % 2 != 0:
             dms = np.arange(2, f-1-ds, steps)
         
         saveList = []
@@ -71,10 +71,11 @@ for f in fs:
         savepath = os.path.join(datapath, filename)
         
         for dm in dms:
+            Itotal = np.zeros(mask.shape, dtype='complex128')
             for ii in range(len(wavelengths)):
                 k = 2 * np.pi / wavelengths[ii]
                 illu_wavefront = np.exp(-1.0j * k * (totalMaskX**2 + totalMaskY**2) / (2 * (f/1000-dm/1000)))
-                propagated_field = utils.aspw(regionMask[ii]*mask*illu_wavefront, wavelengths[ii], dx=maskdx, dz=ds)
+                propagated_field = utils.aspw(regionMask[ii]*mask*illu_wavefront, wavelengths[ii], dx=maskdx, dz=ds/1000)
                 Itotal += (propagated_field)
             
             saveList.append(Itotal)

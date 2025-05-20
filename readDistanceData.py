@@ -8,7 +8,7 @@ from scipy.stats import trim_mean
 
 #%%
 
-folderPath = r'C:\Master Thesis\data\1 optimal probe touching\data\f40\probeDistance'
+folderPath = r'C:\Master Thesis\data\1 optimal probe touching\multiWavelength\f20\probeDistance'
 fileName = 'f40_2-14dm2step_24ds.npy'
 filePath = os.path.join(folderPath, fileName)
 

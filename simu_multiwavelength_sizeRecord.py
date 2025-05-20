@@ -50,23 +50,22 @@ for idx, (a, b) in enumerate(keep, start=1):
     masks.append(np.pad(maskNew, (N-maskN)//2))
 
 #multiwavelength band mask
-regionMask = [mask[:,0:maskN//4], mask[:,maskN//4:maskN//4*2],mask[:,maskN//4*2:maskN//4*3],mask[:,maskN//4*3:maskN//4*4]]
-regionMask = []
-for ii in range(4):
-    subMask = np.zeros([maskN, maskN])
-    subMask[:,maskN//4*ii:maskN//4*(ii+1)] = 1
-    regionMask.append(subMask)
+# regionMask = []
+# for ii in range(4):
+#     subMask = np.zeros([maskN, maskN])
+#     subMask[:,maskN//4*ii:maskN//4*(ii+1)] = 1
+#     regionMask.append(subMask)
 
 #%%
 #propagation
 #params
-savedir = r'C:\Master Thesis\data\1 optimal probe touching\data\f40'
+savedir = r'C:\Master Thesis\data\1 optimal probe touching\multiWavelength\f40'
 datapath = os.path.join(savedir, 'probeSize')
 savepathcoor = os.path.join(datapath, 'coor.npy')
 np.save(savepathcoor, totalMaskx)
 
 steps = 2
-fs = [20]
+fs = [40]
 
 for f in fs:
     if f % 2 == 0:
@@ -75,23 +74,19 @@ for f in fs:
         dss = np.arange(2, f-1-steps, steps)
     
     for ds in dss:
-        if f*1000 % 2 == 0:
+        if f % 2 == 0:
             dms = np.arange(2, f-ds, steps)
-        elif f*1000 % 2 != 0:
+        elif f % 2 != 0:
             dms = np.arange(2, f-1-ds, steps)
                 
         for dm in dms:
-            Itotal = np.zeros(mask.shape, dtype='complex128')
-            for ii in range(len(wavelengths)):
-                k = 2 * np.pi / wavelengths[ii]
-                illu_wavefront = np.exp(-1.0j * k * (totalMaskX**2 + totalMaskY**2) / (2 * (f/1000-dm/1000)))
-                propagated_field = utils.aspw(masks[ii]*illu_wavefront, wavelengths[ii], dx=maskdx, dz=ds)
-                Itotal += (propagated_field)
             saveList = []
             filename = f'f{f}_{dm}dm{steps}step_{ds}ds.npy'
             savepath = os.path.join(datapath, filename)
-            for mask1 in masks:
-                propagated_field = utils.aspw(mask1*illu_wavefront, wavelength, dx=maskdx, dz=ds/1000)
+            for ii in range(len(wavelengths)):
+                k = 2 * np.pi / wavelengths[ii]
+                illu_wavefront = np.exp(-1.0j * k * (totalMaskX**2 + totalMaskY**2) / (2 * (f/1000-dm/1000)))
+                propagated_field = utils.aspw(masks[ii]*illu_wavefront, wavelengths[ii], dx=maskdx, dz=ds/1000)
                 saveList.append(propagated_field)
             saveArray = np.array(saveList)
             np.save(savepath, saveArray)

@@ -43,7 +43,7 @@ def findPeak(data, peakNum: int = 1, peakDistance: int = 15):
 #%%
 
 #create file names
-lensFocuLengths = [40]
+lensFocuLengths = [20]
 steps = 2
 filenames = []
 for lensFocuLength in lensFocuLengths:
@@ -65,8 +65,8 @@ for lensFocuLength in lensFocuLengths:
 # filename = 'f20_2-4dm2step_14ds.npy'
 # filePath = os.path.join(folderPath, filename)
 # dataSet = np.load(filePath)
-folderPath = r'C:\Master Thesis\data\1 optimal probe touching\data\f40\probeSize'
-resultProbeSize = np.zeros([17,17])
+folderPath = r'C:\Master Thesis\data\1 optimal probe touching\multiWavelength\f20\probeDistance'
+resultProbeSize = np.zeros([7,7])  #17for40, 7for20
 jj = 0
 
 N = 4000
@@ -112,7 +112,8 @@ for filename in filenames:
 
 #%%
 
-pattern = [17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+# pattern = [17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+pattern = [7, 6, 5, 4, 3, 2, 1]
 nRows = len(pattern)
 nCols = max(pattern)
 
