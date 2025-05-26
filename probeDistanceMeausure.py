@@ -42,7 +42,7 @@ def findPeak(data, peakNum: int = 16, peakDistance: int = 15):
 #%%
 
 #create file names
-lensFocuLengths = [20]
+lensFocuLengths = [40]
 steps = 2
 filenames = []
 for lensFocuLength in lensFocuLengths:
@@ -63,8 +63,8 @@ del filenames[0]
 # filename = 'f20_2-4dm2step_14ds.npy'
 # filePath = os.path.join(folderPath, filename)
 # dataSet = np.load(filePath)
-folderPath = r'C:\Master Thesis\data\1 optimal probe touching\multiWavelength\f20\probeDistance'
-resultDistance = np.zeros([7,7]) # 17,17
+folderPath = r'C:\Master Thesis\data\1 optimal probe touching\multiWavelength\f40\probeDistance'
+resultDistance = np.zeros([17,17]) # 17,17
 jj = 0
 
 N = 4000
@@ -75,8 +75,8 @@ for filename in filenames:
     filePath = os.path.join(folderPath, filename)
     dataSet = np.load(filePath)
     for ii in range(np.shape(dataSet)[0]):
-        data = np.abs(dataSet[ii, :, :] ** 2)
-        peaks = findPeak(data, peakDistance=70)
+        data = np.abs(dataSet[ii, :, :]) ** 2
+        peaks = findPeak(data, peakDistance=130)
 
         peaksX = peaks[:, 0]
         peaksY = peaks[:, 1]
@@ -102,7 +102,7 @@ resultDistanceFiltered = resultDistance[:,:-1]
 # plt.figure()
 # plt.imshow(np.log(data)+1)
 # plt.scatter(peaksX, peaksY, s=20, marker='o', linewidths=1.2)
-fileName = 'ResultDistance.npy'
+fileName = 'ResultDistance_peakDis130.npy'
 filepath = os.path.join(folderPath, fileName)
 np.save(filepath, np.array(resultDistanceFiltered))
 #coordinates
@@ -145,7 +145,6 @@ dmFity = fitdm(dmFitx)
 dmPred = fitdm(dsVals)
 residualsDmFit = dm2mm - dmPred
 
-plt.figure()
 fig, (axData, axResid) = plt.subplots(
     2, 1,
     sharex=True,
@@ -163,7 +162,6 @@ axResid.scatter(dmVals, residualsDsFit)
 axResid.set_ylabel('residual')
 axResid.axhline(0, c='gray')
 
-plt.figure()
 fig, (axData, axResid) = plt.subplots(
     2, 1,
     sharex=True,

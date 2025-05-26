@@ -56,10 +56,10 @@ for ii in range(4):
 #propagation
 #params
 f = 20e-3
-dm = 6e-3
-ds = 6e-3
+dm = 8e-3
+ds = 10e-3
 
-Itotal = np.zeros(mask.shape)
+Itotal = np.zeros(mask.shape, dtype='complex128')
 for ii in range(len(wavelengths)):
     k = 2 * np.pi / wavelengths[ii]
     illu_wavefront = np.exp(-1.0j * k * (totalMaskX**2 + totalMaskY**2) / (2 * (f-dm)))
@@ -67,7 +67,7 @@ for ii in range(len(wavelengths)):
     Itotal += (propagated_field)
 
 plt.figure(figsize=(4,4), dpi=100)
-plt.imshow(np.log10(abs(Itotal)+1), extent=coorTran, cmap=utils.setCustomColorMap())
+plt.imshow(np.log10(abs(Itotal)**2+1), extent=coorTran, cmap=utils.setCustomColorMap())
 plt.xlabel('mm')
 plt.ylabel('mm')
 plt.title('propagated field')

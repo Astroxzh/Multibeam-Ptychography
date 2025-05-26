@@ -1,6 +1,7 @@
 import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
-
+import cv2 
+from scipy.ndimage import gaussian_filter
 
 
 def circ(x, y, D):
@@ -283,6 +284,48 @@ def encircledEnergyRadius(I, fraction=0.95, pixel_size=1.0):
     r = flat_dist[order][idx]
     return r
 
+def encircledEnergyRadiusSubpixel(I, center, fraction=0.95, pixel_size=1.0):
+    """
+    calculate center=(y0, x0) as center, minimum radius which contain energy fraction 
+
+    params:
+      I           : 2D array, input 
+      center      : tuple (y0, x0)，center coor, int
+      fraction    : float, precentage of encircle energy
+      pixel_size  : float or (dx, dy)，像素大小（默认 1.0）
+    
+    return:
+      r           : float, minumum radius
+    """
+    y0, x0 = center
+    ny, nx = I.shape
+    y_idx, x_idx = np.indices(I.shape)
+    
+    # pixel_size
+    if np.isscalar(pixel_size):
+        dx = dy = pixel_size
+    else:
+        dx, dy = pixel_size
+    
+    # Euler distance
+    dist = np.sqrt(((x_idx - x0) * dx)**2 + ((y_idx - y0) * dy)**2)
+    
+    # sort with distance
+    flat_I    = I.ravel()
+    flat_dist = dist.ravel()
+    order = np.argsort(flat_dist)
+    
+    # encircled energy
+    cum_intensity = np.cumsum(flat_I[order])
+    total_energy  = flat_I.sum()
+    target = fraction * total_energy
+    
+    # the first position that reach the goal
+    idx = np.searchsorted(cum_intensity, target)
+    r = flat_dist[order][idx]
+    return r
+
+
 def linear_overlap(D, s):
     """Fractional overlap along one axis."""
     return max(0.0, 1 - s/D)
@@ -301,3 +344,59 @@ def fov(r, d):
     if d >= 2 * r:
         return 0.0
     return 3 * d + 2 * r
+
+def findPeak(data, peakNum: int = 1, peakDistance: int = 15):
+    dataCopy = data.copy()
+    peakList = []
+    for i in range(peakNum):
+        maxCoord = np.unravel_index(np.argmax(dataCopy), dataCopy.shape)
+        peakList.append(list(maxCoord))
+        i, j = maxCoord
+        rowMin = max(0, i - peakDistance)
+        rowMax = min(dataCopy.shape[0], i + peakDistance)
+        colMin = max(0, j - peakDistance)
+        colMax = min(dataCopy.shape[1], j + peakDistance)
+        dataCopy[rowMin:rowMax, colMin:colMax] = 0
+    coords = np.array(peakList)
+    sortedIdx = np.argsort(coords[:,1])
+    sortedCoords = coords[sortedIdx]
+    a = int(np.sqrt(peakNum))
+    for i in range(a):
+        row = sortedCoords[i * a:(i+1) * a, :]
+        sortedRowIdx = np.argsort(row[:, 0])
+        sortedRow = row[sortedRowIdx]
+        sortedCoords[i * a:(i+1) * a, :] = sortedRow
+    
+    return sortedCoords
+
+def getCenter(img, thres):
+    '''
+    to get center coor of spiral probe
+
+    input: 
+    img: 2D array
+    thres: threshold of binarization
+
+    return:
+    cXmean, cYmean, center coordinate
+    '''
+    sm = gaussian_filter(img, sigma=2)
+    _, binaryImg = cv2.threshold(sm, thres, 2, cv2.THRESH_BINARY)
+    binaryImg = binaryImg.astype(np.uint8)
+    contours, _ = cv2.findContours(binaryImg, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    cXs = 0
+    cYs = 0
+    ii = 0
+    for contour in contours:
+        M = cv2.moments(contour)
+        if M['m00'] != 0:
+            cX = int(M['m10'] / M['m00'])
+            cY = int(M['m01'] / M['m00'])
+            ii += 1
+            cXs += cX
+            cYs += cY
+                    
+    cXmean = cXs / ii
+    cYmean = cYs / ii
+    return cXmean, cYmean

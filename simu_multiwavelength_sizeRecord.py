@@ -37,14 +37,13 @@ mask = np.pad(mask, (N-maskN)//2)
 coorTran = [totalMaskx[0]*1000, totalMaskx[-1]*1000, totalMaskx[0]*1000, totalMaskx[-1]*1000]
 
 
-keep = [(1,13), (2,14), (3,15), (4,16)]
+keep = [1, 2, 3, 4]
 masks = []
-for idx, (a, b) in enumerate(keep, start=1):
+for k in keep:
     blockMask = np.zeros((4, 4), dtype=int)
-    for k in (a, b):
-        i = (k-1) // 4
-        j = (k-1) % 4
-        blockMask[i, j] = 1
+    i = (k-1) // 4
+    j = (k-1) % 4
+    blockMask[i, j] = 1
     maskFilter = np.kron(blockMask, np.ones((int(localMaskN), int(localMaskN)), dtype=int))
     maskNew = mask * maskFilter
     masks.append(np.pad(maskNew, (N-maskN)//2))
@@ -59,13 +58,13 @@ for idx, (a, b) in enumerate(keep, start=1):
 #%%
 #propagation
 #params
-savedir = r'C:\Master Thesis\data\1 optimal probe touching\multiWavelength\f40'
+savedir = r'C:\Master Thesis\data\1 optimal probe touching\multiWavelength\f20'
 datapath = os.path.join(savedir, 'probeSize')
 savepathcoor = os.path.join(datapath, 'coor.npy')
 np.save(savepathcoor, totalMaskx)
 
 steps = 2
-fs = [40]
+fs = [20]
 
 for f in fs:
     if f % 2 == 0:

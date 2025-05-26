@@ -11,39 +11,14 @@ import matplotlib.pyplot as plt
 import utils
 from scipy.signal import convolve2d
 import os
+import cv2
 
 from skimage.measure import regionprops, label
-
-#%%
-def findPeak(data, peakNum: int = 1, peakDistance: int = 15):
-    dataCopy = data.copy()
-    peakList = []
-    for i in range(peakNum):
-        maxCoord = np.unravel_index(np.argmax(dataCopy), dataCopy.shape)
-        peakList.append(list(maxCoord))
-        i, j = maxCoord
-        rowMin = max(0, i - peakDistance)
-        rowMax = min(dataCopy.shape[0], i + peakDistance)
-        colMin = max(0, j - peakDistance)
-        colMax = min(dataCopy.shape[1], j + peakDistance)
-        dataCopy[rowMin:rowMax, colMin:colMax] = 0
-    coords = np.array(peakList)
-    sortedIdx = np.argsort(coords[:,1])
-    sortedCoords = coords[sortedIdx]
-    a = int(np.sqrt(peakNum))
-    for i in range(a):
-        row = sortedCoords[i * a:(i+1) * a, :]
-        sortedRowIdx = np.argsort(row[:, 0])
-        sortedRow = row[sortedRowIdx]
-        sortedCoords[i * a:(i+1) * a, :] = sortedRow
-    
-    return sortedCoords
-
-
+from scipy.ndimage import gaussian_filter
 #%%
 
 #create file names
-lensFocuLengths = [20]
+lensFocuLengths = [40]
 steps = 2
 filenames = []
 for lensFocuLength in lensFocuLengths:
@@ -65,111 +40,182 @@ for lensFocuLength in lensFocuLengths:
 # filename = 'f20_2-4dm2step_14ds.npy'
 # filePath = os.path.join(folderPath, filename)
 # dataSet = np.load(filePath)
-folderPath = r'C:\Master Thesis\data\1 optimal probe touching\multiWavelength\f20\probeDistance'
-resultProbeSize = np.zeros([7,7])  #17for40, 7for20
+folderPath = r'C:\Master Thesis\data\1 optimal probe touching\multiWavelength\f40\probeSize'
+resultProbeSize = np.zeros([17,17])  #17for40, 7for20
 jj = 0
 
 N = 4000
 size = 4e-3
 dx = size / N
-result = []
+result = [[] for _ in range(4)]
+fileCount = 0
+
+# threshold = 0.6
 for filename in filenames:
+    print(f'{filename} is processing')
     filePath = os.path.join(folderPath, filename)
     dataSet = np.load(filePath)
-    temp = np.zeros([np.shape(dataSet)[0]])
+    # temp = np.zeros([np.shape(dataSet)[0]])
+    if fileCount > 130:
+        threshold = 0.3
+    else:
+        threshold = 0.6
+    fileCount +=1
     for ii in range(np.shape(dataSet)[0]):
-        data = np.abs(dataSet[ii, :, :] ** 2)
-        # peaks = findPeak(data, peakNum=1)
-        # peaksX = peaks[:, 0]
-        # peaksy = peaks[:, 1]
-        xMax, yMax = np.unravel_index(np.argmax(data), data.shape)
-        # edge
-        H, W = data.shape
-        x1 = max(0, xMax - 1000)
-        x2 = min(H, xMax + 1000)
-        y1 = max(0, yMax - 1000)
-        y2 = min(W, yMax + 1000)
-        cropData = data[x1:x2, y1:y2]
-        # mask = cropData > cropData.max()*0.05
-        # labelImg = label(mask)
+        data = np.abs(dataSet[ii, :, :]) ** 2
+        cXmean, cYmean = utils.getCenter(data, thres=threshold)
+        center = np.array([cYmean, cXmean])
+        # xMax, yMax = np.unravel_index(np.argmax(data), data.shape)
+        # # edge
+        # H, W = data.shape
+        # x1 = max(0, xMax - 1000)
+        # x2 = min(H, xMax + 1000)
+        # y1 = max(0, yMax - 1000)
+        # y2 = min(W, yMax + 1000)
+        # cropData = data[x1:x2, y1:y2]
 
-        # props = regionprops(label_image=labelImg, intensity_image=cropData)
-        # p = props[0]
-
-        # RMS radius too strict?
-        # tensor = p.inertia_tensor
-        # Ixx = tensor[0, 0]
-        # Ixy = tensor[0, 1]
-        # Iyy = tensor[1, 1]
-        # E = p.intensity_image.sum()
-        # sigmaR = np.sqrt((Ixx + Iyy) / E)
-        # rmsRadius = sigmaR * dx
-        radius = utils.encircledEnergyRadius(cropData, fraction=0.8, pixel_size=(4/4000))
-        temp[ii] = radius
-    meanProbeSize = np.mean(temp)
-    result.append(meanProbeSize)
+        radius = utils.encircledEnergyRadiusSubpixel(data, center, fraction=0.9, pixel_size=(4/4000))
+        # temp[ii] = radius
+        result[ii].append(radius)
+    # meanProbeSize = np.mean(temp)
+    # result.append(meanProbeSize)
 
 
 #%%
 
-# pattern = [17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-pattern = [7, 6, 5, 4, 3, 2, 1]
+pattern = [17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+# pattern = [7, 6, 5, 4, 3, 2, 1]
 nRows = len(pattern)
 nCols = max(pattern)
 
+result1 = result[0]
+result2 = result[1]
+result3 = result[2]
+result4 = result[3]
+
 idx = 0
 for i, length in enumerate(pattern):
-    chunk = result[idx: idx + length]
+    chunk = result1[idx: idx + length]
     resultProbeSize[i, :len(chunk)] = chunk
     idx += length
 
 resultSizeFiltered = resultProbeSize[:,:-1]
 
-fileName = 'ResultSize80%.npy'
+fileName = 'ResultSize90%_probe627.npy'
 filepath = os.path.join(folderPath, fileName)
 np.save(filepath, np.array(resultSizeFiltered))
 
-dsVals = np.arange(4, 38, 2)
-dmVals = np.arange(2, 34, 2)
 
-DM, DS = np.meshgrid(dmVals, dsVals)
+idx = 0
+for i, length in enumerate(pattern):
+    chunk = result2[idx: idx + length]
+    resultProbeSize[i, :len(chunk)] = chunk
+    idx += length
 
-# heat map
-plt.figure(figsize=(6,5))
-pcm = plt.pcolormesh(DM, DS, resultSizeFiltered, shading='auto')
-plt.colorbar(pcm, label='mm')
-plt.xlabel('dm/mm')
-plt.ylabel('ds/mm')
-plt.title('probe size vs ds and dm \n @80% encircled energy')
-plt.tight_layout()
+resultSizeFiltered = resultProbeSize[:,:-1]
 
-#%%
-dm2mm = resultSizeFiltered[:, 0]
-coedm = np.polyfit(dsVals, dm2mm, 1)
-fitdm = np.poly1d(coedm)
-dmFitx = np.linspace(dsVals[0], dsVals[-1], 100)
-dmFity = fitdm(dmFitx)
-dmPred = fitdm(dsVals)
-residualsDmFit = dm2mm - dmPred
+fileName = 'ResultSize90%_probe591.npy'
+filepath = os.path.join(folderPath, fileName)
+np.save(filepath, np.array(resultSizeFiltered))
 
-plt.figure()
-fig, (axData, axResid) = plt.subplots(
-    2, 1,
-    sharex=True,
-    gridspec_kw={'height_ratios': [3, 1], 'hspace': 0.1},
-    figsize=(6, 6)
-)
-axData.scatter(dsVals, dm2mm, label='data')
-axData.plot(dmFitx, dmFity, label=f'{fitdm[1]:.5f}$x$+{fitdm[0]:.5f}')
-axData.set_title('probe size vs ds, @dm=2mm')
-axResid.set_xlabel('ds/mm')
-axData.set_ylabel('probe size/mm')
-axData.legend()
 
-axResid.scatter(dsVals, residualsDmFit)
-axResid.set_ylabel('residual')
-axResid.axhline(0, c='gray')
+idx = 0
+for i, length in enumerate(pattern):
+    chunk = result3[idx: idx + length]
+    resultProbeSize[i, :len(chunk)] = chunk
+    idx += length
 
-#%%
-plt.show()
+resultSizeFiltered = resultProbeSize[:,:-1]
+
+fileName = 'ResultSize90%_probe563.npy'
+filepath = os.path.join(folderPath, fileName)
+np.save(filepath, np.array(resultSizeFiltered))
+
+
+idx = 0
+for i, length in enumerate(pattern):
+    chunk = result4[idx: idx + length]
+    resultProbeSize[i, :len(chunk)] = chunk
+    idx += length
+
+resultSizeFiltered = resultProbeSize[:,:-1]
+
+fileName = 'ResultSize90%_probe541.npy'
+filepath = os.path.join(folderPath, fileName)
+np.save(filepath, np.array(resultSizeFiltered))
+
+# #for 20mm
+# dsVals = np.arange(4, 18, 2) 
+# dmVals = np.arange(2, 14, 2)
+
+# #for 40mm
+# # dsVals = np.arange(4, 38, 2)
+# # dmVals = np.arange(2, 34, 2)
+
+# DM, DS = np.meshgrid(dmVals, dsVals)
+
+# # heat map
+# plt.figure(figsize=(6,5))
+# pcm = plt.pcolormesh(DM, DS, resultSizeFiltered, shading='auto')
+# plt.colorbar(pcm, label='mm')
+# plt.xlabel('dm/mm')
+# plt.ylabel('ds/mm')
+# plt.title('probe size vs ds and dm \n @80% encircled energy')
+# plt.tight_layout()
+
+# #%%
+# dm2mm = resultSizeFiltered[:, 0]
+# coedm = np.polyfit(dsVals, dm2mm, 1)
+# fitdm = np.poly1d(coedm)
+# dmFitx = np.linspace(dsVals[0], dsVals[-1], 100)
+# dmFity = fitdm(dmFitx)
+# dmPred = fitdm(dsVals)
+# residualsDmFit = dm2mm - dmPred
+
+# plt.figure()
+# fig, (axData, axResid) = plt.subplots(
+#     2, 1,
+#     sharex=True,
+#     gridspec_kw={'height_ratios': [3, 1], 'hspace': 0.1},
+#     figsize=(6, 6)
+# )
+# axData.scatter(dsVals, dm2mm, label='data')
+# axData.plot(dmFitx, dmFity, label=f'{fitdm[1]:.5f}$x$+{fitdm[0]:.5f}')
+# axData.set_title('probe size vs ds, @dm=2mm')
+# axResid.set_xlabel('ds/mm')
+# axData.set_ylabel('probe size/mm')
+# axData.legend()
+
+# axResid.scatter(dsVals, residualsDmFit)
+# axResid.set_ylabel('residual')
+# axResid.axhline(0, c='gray')
+
+# ds4mm = resultSizeFiltered[0,:]
+# coeds = np.polyfit(dmVals, ds4mm, 1)
+# fitds = np.poly1d(coeds)
+# dsFitx = np.linspace(dmVals[0], dmVals[-1], 100)
+# dsFity = fitds(dsFitx)
+# dsPred = fitds(dmVals)
+# residualsDsFit = ds4mm - dsPred
+
+# plt.figure()
+# fig, (axData, axResid) = plt.subplots(
+#     2, 1,
+#     sharex=True,
+#     gridspec_kw={'height_ratios': [3, 1], 'hspace': 0.1},
+#     figsize=(6, 6)
+# )
+# axData.scatter(dmVals, ds4mm, label='data')
+# axData.plot(dsFitx, dsFity, label=f'{fitds[1]:.5f}$x$+{fitds[0]:.5f}')
+# axData.set_title('probe size vs dm, @ds=4mm')
+# axResid.set_xlabel('dm/mm')
+# axData.set_ylabel('probe size/mm')
+# axData.legend()
+
+# axResid.scatter(dmVals, residualsDsFit)
+# axResid.set_ylabel('residual')
+# axResid.axhline(0, c='gray')
+
+# #%%
+# plt.show()
 # %%

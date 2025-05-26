@@ -1,77 +1,98 @@
 #%%
 import numpy as np
+from skimage.feature import peak_local_max
+from scipy.ndimage import gaussian_filter
 import matplotlib.pyplot as plt
-import utils
-from scipy.signal import convolve2d
 import os
+import cv2
+import utils
 from scipy.stats import trim_mean
+
 from matplotlib.patches import Circle
-
-from scipy.ndimage import center_of_mass
-
 #%%
-
-folderPath = r'C:\Master Thesis\data\1 optimal probe touching\data\f20_probeSizeMeasurement\data'
-fileName = 'f20_6dm2step_4ds.npy'
+# --- 1. 读取图像并预处理 ---
+folderPath = r'C:\Master Thesis\data\1 optimal probe touching\multiWavelength\f20\probeSize'
+fileName = 'f20_10dm2step_4ds.npy'
 filePath = os.path.join(folderPath, fileName)
 
 dataSet = np.load(filePath)
+img = np.abs(dataSet[1,...])**2
+# 可选：先平滑一下以抑制噪声
+sm = gaussian_filter(img, sigma=2)
+
+
+# %%
+
+_, binaryImg = cv2.threshold(sm, 0.6, 2, cv2.THRESH_BINARY)
+# plt.imshow(binaryImg)
 
 #%%
-N = 8000
-size = 10e-3
-dx = size / N
+binaryImg = binaryImg.astype(np.uint8)
+contours, _ = cv2.findContours(binaryImg, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+plt.imshow(img, cmap=utils.setCustomColorMap())
+cXs = 0
+cYs = 0
+ii = 0
+for contour in contours:
+    M = cv2.moments(contour)
+    if M['m00'] != 0:
+        cX = int(M['m10'] / M['m00'])
+        cY = int(M['m01'] / M['m00'])
+        ii += 1
+        cXs += cX
+        cYs += cY
+        print(cX,cY)
+        # plt.plot(cX, cY, 'r+', markersize=12)
+        
+# cXmean = trim_mean(cXs, proportiontocut=0.2, axis=None)
+# cYmean = trim_mean(cYs, proportiontocut=0.2, axis=None)  
+cXmean = cXs / ii
+cYmean = cYs / ii
+print (cXmean, cYmean)
+plt.plot(cXmean, cYmean, 'b+', markersize=12)
 
-localN = 1000
-localx = np.arange(-localN / 2, localN / 2) * dx
-localCoor = [localx[0]*1000, localx[-1]*1000,
-             localx[0]*1000, localx[-1]*1000]
 
-fig, ax = plt.subplots(1,4, sharex=True, sharey=True)
-ax = np.ravel(ax)
 
-localN = 1000
-localx = np.arange(-localN / 2, localN / 2) * dx
-localCoor = [localx[0]*1000, localx[-1]*1000, localx[0]*1000, localx[-1]*1000] 
+#%%
+center = np.array([cYmean, cXmean])
+radius = utils.encircledEnergyRadiusSubpixel(img, center=center, fraction=0.8, pixel_size=(4/4000))
 
-for ii in range(dataSet.shape[0]):
-    data = np.abs(dataSet[ii])**2
-    x0, y0 = np.unravel_index(np.argmax(data), data.shape)
-    crop = data[x0-500:x0+500, y0-500:y0+500]
+# --- 5. 可视化结果 ---
+fig, axes = plt.subplots(1,2, figsize=(12, 4))
 
-    # 1) 梯度幅值
-    gy, gx = np.gradient(crop)
-    grad = np.hypot(gx, gy)
+# 原图+中心标记
+ax = axes[0]
+ax.imshow(img, cmap='gray')
+ax.plot(cXmean, cYmean, 'rx')
+ax.set_title('原图与探针中心')
+circle = Circle((cXmean, cYmean), radius,
+                edgecolor='r',      # 边框颜色
+                facecolor='none',   # 填充颜色（none 表示不填充）
+                linewidth=2)        # 边框宽度
+ax.add_patch(circle)
 
-    # 2) 在梯度图上求质心（像素坐标）
-    cy_pix, cx_pix = center_of_mass(grad)
+# # 子图0
+# axes[1].imshow(sub0, cmap='gray')
+# axes[1].set_title(f'Probe 0 sub-image')
 
-    # 3) 像素坐标 -> 物理坐标（mm）
-    #    localx[0] 是左下角对应的物理坐标（mm），dx*1000 是每像素对应 mm
-    x0_mm = localx[0]*1000 + cx_pix * dx * 1000
-    y0_mm = localx[0]*1000 + cy_pix * dx * 1000
+# # 子图1
+# axes[2].imshow(sub1, cmap='gray')
+# axes[2].set_title(f'Probe 1 sub-image')
 
-    # 4) 计算包围能量半径（单位：mm）
-    r90 = utils.encircledEnergyRadius(crop, fraction=0.9, pixel_size=(10/8000))
-    r80 = utils.encircledEnergyRadius(crop, fraction=0.8, pixel_size=(10/8000))
+# plt.tight_layout()
+# plt.show()
 
-    ax[ii].imshow(crop, extent=localCoor)
-    ax[ii].set_aspect('equal')
+# # 包围能量曲线
+# plt.figure(figsize=(6,4))
+# plt.plot(rs0, ee0, label='Probe 0')
+# plt.xlabel('Radius (pixels)')
+# plt.ylabel('Encircled Energy')
+# plt.legend()
+# plt.title('Encircled Energy vs. Radius')
+# plt.grid(True)
 
-    # 5) 在 (x0_mm, y0_mm) 处画圆
-    for r, col, lab in [(r90, 'white', '90% EE'), (r80, 'red', '80% EE')]:
-        circ = Circle((x0_mm, y0_mm), r, fill=False, edgecolor=col, linewidth=2, label=lab)
-        ax[ii].add_patch(circ)
 
-    ax[ii].plot(x0_mm, y0_mm, 'yx', label='center')
-    # ax[ii].legend(loc='upper right')
-
-plt.tight_layout()
+#%%
 plt.show()
-# fig.supxlabel("mm")
-# fig.supylabel("mm", x=0.001, fontsize=12)
-
-#%%
-
 
 # %%
