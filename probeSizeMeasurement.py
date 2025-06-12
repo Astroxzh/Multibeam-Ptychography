@@ -56,11 +56,13 @@ for filename in filenames:
     filePath = os.path.join(folderPath, filename)
     dataSet = np.load(filePath)
     # temp = np.zeros([np.shape(dataSet)[0]])
-    if fileCount > 130:
+    if fileCount > 143 :
+        threshold = 0.1
+    elif fileCount > 130:
         threshold = 0.3
     else:
         threshold = 0.6
-    fileCount +=1
+    fileCount += 1
     for ii in range(np.shape(dataSet)[0]):
         data = np.abs(dataSet[ii, :, :]) ** 2
         cXmean, cYmean = utils.getCenter(data, thres=threshold)
@@ -74,7 +76,7 @@ for filename in filenames:
         # y2 = min(W, yMax + 1000)
         # cropData = data[x1:x2, y1:y2]
 
-        radius = utils.encircledEnergyRadiusSubpixel(data, center, fraction=0.9, pixel_size=(4/4000))
+        radius = utils.encircledEnergyRadiusSubpixel(data, center, fraction=0.8, pixel_size=(4/4000))
         # temp[ii] = radius
         result[ii].append(radius)
     # meanProbeSize = np.mean(temp)
@@ -101,7 +103,7 @@ for i, length in enumerate(pattern):
 
 resultSizeFiltered = resultProbeSize[:,:-1]
 
-fileName = 'ResultSize90%_probe627.npy'
+fileName = 'ResultSize80%_probe627.npy'
 filepath = os.path.join(folderPath, fileName)
 np.save(filepath, np.array(resultSizeFiltered))
 
@@ -114,7 +116,7 @@ for i, length in enumerate(pattern):
 
 resultSizeFiltered = resultProbeSize[:,:-1]
 
-fileName = 'ResultSize90%_probe591.npy'
+fileName = 'ResultSize80%_probe591.npy'
 filepath = os.path.join(folderPath, fileName)
 np.save(filepath, np.array(resultSizeFiltered))
 
@@ -127,7 +129,7 @@ for i, length in enumerate(pattern):
 
 resultSizeFiltered = resultProbeSize[:,:-1]
 
-fileName = 'ResultSize90%_probe563.npy'
+fileName = 'ResultSize80%_probe563.npy'
 filepath = os.path.join(folderPath, fileName)
 np.save(filepath, np.array(resultSizeFiltered))
 
@@ -140,7 +142,7 @@ for i, length in enumerate(pattern):
 
 resultSizeFiltered = resultProbeSize[:,:-1]
 
-fileName = 'ResultSize90%_probe541.npy'
+fileName = 'ResultSize80%_probe541.npy'
 filepath = os.path.join(folderPath, fileName)
 np.save(filepath, np.array(resultSizeFiltered))
 

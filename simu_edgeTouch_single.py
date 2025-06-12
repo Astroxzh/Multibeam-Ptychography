@@ -8,9 +8,9 @@ from scipy.signal import convolve2d
 #%%
 #unit: m
 #parameter
-wavelength = 584e-9 #627e-9  
+wavelength = 430e-9 #584e-9 #627e-9  
 k = 2 * np.pi / wavelength
-N = 4000
+N = 2048
 
 #create mask (spiral aperture)
 maskSize = 4e-3
@@ -47,28 +47,28 @@ plt.show()
 
 #%%
 #Illumination params
-f=20e-3
-dm=6e-3
-illu_wavefront = np.exp(-1.0j * k * (totalMaskX**2 + totalMaskY**2) / (2 * (f-dm)))
+# f=20e-3
+# dm=8e-3
+# illu_wavefront = np.exp(-1.0j * k * (totalMaskX**2 + totalMaskY**2) / (2 * (f-dm)))
+# # plt.figure(figsize=(4,4), dpi=100)
+# # plt.imshow(utils.complex2rgb(illu_wavefront), extent=coorTran)
+# # plt.xlabel('mm')
+# # plt.ylabel('mm')
+# # plt.title('illu_wavefront')
+# # plt.tight_layout()
+# # plt.show()
+
+
+# # #propagate to sample plane
+# ds = 4e-3  # distance to sample after mask
+# propagated_field = utils.aspw(mask*illu_wavefront, wavelength, dx=maskdx, dz=ds)
 # plt.figure(figsize=(4,4), dpi=100)
-# plt.imshow(utils.complex2rgb(illu_wavefront), extent=coorTran)
+# plt.imshow(np.log10(abs(propagated_field)**2+1), extent=coorTran, cmap=utils.setCustomColorMap())
 # plt.xlabel('mm')
 # plt.ylabel('mm')
-# plt.title('illu_wavefront')
+# plt.title('propagated field')
 # plt.tight_layout()
 # plt.show()
-
-
-# #propagate to sample plane
-ds = 6e-3  # distance to sample after mask
-propagated_field = utils.aspw(mask*illu_wavefront, wavelength, dx=maskdx, dz=ds)
-plt.figure(figsize=(4,4), dpi=100)
-plt.imshow(np.log10(abs(propagated_field)+1), extent=coorTran, cmap=utils.setCustomColorMap())
-plt.xlabel('mm')
-plt.ylabel('mm')
-plt.title('propagated field')
-plt.tight_layout()
-plt.show()
 
 # propagatorSample = utils.angularPropagator(dz=ds, wavelength=wavelength, N=N, dx=lightsourcedx)
 

@@ -330,20 +330,43 @@ def linear_overlap(D, s):
     """Fractional overlap along one axis."""
     return max(0.0, 1 - s/D)
 
-def area_overlap(D, s):
-    """Fraction of circular beam-area overlapped."""
+def area_overlap(D, d):
+    """Fraction of circular beam-area overlapped.
+        D diameter 
+        d distance
+    """
     R = D/2
-    d = s
     if d >= 2*R:
         return 0.0
     term1 = 2 * R**2 * np.arccos(d/(2*R))
     term2 = 0.5 * d * np.sqrt(4*R**2 - d**2)
     return (term1 - term2) / (np.pi * R**2)
 
+def area_overlap_diffSize(r1, r2, d):
+    """Fraction of circular beam-area overlapped.
+        r radius 
+        d distance
+    """
+
+    if d >= r1+r2:
+        return 0.0
+    alpha = np.arccos((d*d + r1*r1 - r2*r2) / (2*d*r1))
+    beta = np.arccos((d*d + r2*r2 - r1*r1) / (2*d*r2))
+    term = (-d + r1 + r2) * (d + r1 - r2) * (d - r1 + r2) * (d + r1 + r2)
+    delta = np.sqrt(term)
+    A_overlap = r1*r1*alpha + r2*r2*beta - 0.5 * delta
+    
+    return A_overlap / (np.pi * r2**2)
+
 def fov(r, d):
     if d >= 2 * r:
         return 0.0
     return 3 * d + 2 * r
+
+def fov(r1, r2, r3, d):
+    if d >= 2 * max(r1,r2,r3):
+        return 0.0
+    return 3*d+r1+r2
 
 def findPeak(data, peakNum: int = 1, peakDistance: int = 15):
     dataCopy = data.copy()

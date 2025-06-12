@@ -11,19 +11,19 @@ from scipy.stats import trim_mean
 from matplotlib.patches import Circle
 #%%
 # --- 1. 读取图像并预处理 ---
-folderPath = r'C:\Master Thesis\data\1 optimal probe touching\multiWavelength\f20\probeSize'
-fileName = 'f20_10dm2step_4ds.npy'
+folderPath = r'C:\Master Thesis\data\1 optimal probe touching\multiWavelength\f40\probeSize'
+fileName = 'f40_2dm2step_36ds.npy'
 filePath = os.path.join(folderPath, fileName)
 
 dataSet = np.load(filePath)
-img = np.abs(dataSet[1,...])**2
+img = np.abs(dataSet[2,...])**2
 # 可选：先平滑一下以抑制噪声
 sm = gaussian_filter(img, sigma=2)
 
 
 # %%
 
-_, binaryImg = cv2.threshold(sm, 0.6, 2, cv2.THRESH_BINARY)
+_, binaryImg = cv2.threshold(sm, 0.1, 2, cv2.THRESH_BINARY)
 # plt.imshow(binaryImg)
 
 #%%
@@ -56,16 +56,16 @@ plt.plot(cXmean, cYmean, 'b+', markersize=12)
 #%%
 center = np.array([cYmean, cXmean])
 radius = utils.encircledEnergyRadiusSubpixel(img, center=center, fraction=0.8, pixel_size=(4/4000))
-
+print(radius)
 # --- 5. 可视化结果 ---
-fig, axes = plt.subplots(1,2, figsize=(12, 4))
-
+fig, ax = plt.subplots()
+# plt.figure()
 # 原图+中心标记
-ax = axes[0]
-ax.imshow(img, cmap='gray')
+# ax = axes[0]
+ax.imshow(np.log10(img+1), cmap=utils.setCustomColorMap())
 ax.plot(cXmean, cYmean, 'rx')
-ax.set_title('原图与探针中心')
-circle = Circle((cXmean, cYmean), radius,
+# plt.set_title('原图与探针中心')
+circle = Circle((cXmean, cYmean), radius/(4/4000),
                 edgecolor='r',      # 边框颜色
                 facecolor='none',   # 填充颜色（none 表示不填充）
                 linewidth=2)        # 边框宽度

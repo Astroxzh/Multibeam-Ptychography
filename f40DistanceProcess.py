@@ -59,6 +59,9 @@ newRe913[0:3,:] = pd130[0:3,:]
 newRe1013[3:17,:] = pd100[3:17, :]
 newRe1013[0:3,:] = pd130[0:3,:]
 
+distanceCorrect = newRe1013
+
+
 # %%
 #for 40mm
 dsVals = np.arange(4, 34, 2) 
@@ -71,6 +74,11 @@ resultDistanceFiltered = newRe1013
 resultDistanceFiltered = mask_triangle(resultDistanceFiltered)
 mask = ~(resultDistanceFiltered == 0).all(axis=1)
 resultDistanceFiltered = resultDistanceFiltered[mask]
+
+distanceCorrect = resultDistanceFiltered
+savePath = r'C:\Master Thesis\data\1 optimal probe touching\multiWavelength\f40\probeDistance\ResultDistanceCorrect.npy'
+np.save(savePath, distanceCorrect)
+
 # heat map
 plt.figure(figsize=(6,5))
 pcm = plt.pcolormesh(DM, DS, resultDistanceFiltered, shading='auto')
