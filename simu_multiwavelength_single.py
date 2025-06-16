@@ -65,9 +65,9 @@ for ii in range(4):
 #%%
 #propagation
 #params
-f = 20e-3
-dm = 2e-3
-ds = 4e-3
+f = 40e-3
+dm = 26e-3
+ds = 12e-3
 Itotal = np.zeros([N,N], dtype='complex128')
 # Itotal = np.zeros(mask.shape, dtype='complex128')
 for ii in range(len(wavelengths)):
@@ -79,18 +79,18 @@ for ii in range(len(wavelengths)):
 farField = np.fft.fftshift(np.fft.fft2(Itotal))
 
 
-dirPath = r'C:\Master Thesis\data\1 optimal probe touching\multiWavelength\f40\farfield'
+dirPath = r'C:\Master Thesis\data\1 optimal probe touching\multiWavelength\f40'
 fileName = [f'dm{dm*1000}ds{ds*1000}Mask.png', f'dm{dm*1000}ds{ds*1000}FF.png']
 
 fieldPath = os.path.join(dirPath, fileName[0])
 FFPath = os.path.join(dirPath, fileName[1])
 
-plt.figure(figsize=(4,4), dpi=100)
-plt.imshow(np.log10(np.abs(farField)**2+1), extent=[-fmax/1000, fmax/1000, -fmax/1000, fmax/1000], cmap=utils.setCustomColorMap())
-plt.xlabel('$mm^{-1}$')
-plt.ylabel('$mm^{-1}$')
-plt.title('propagated field')
-plt.tight_layout()
+# plt.figure(figsize=(4,4), dpi=100)
+# plt.imshow(np.log10(np.abs(farField)**2+1), extent=[-fmax/1000, fmax/1000, -fmax/1000, fmax/1000], cmap=utils.setCustomColorMap())
+# plt.xlabel('$mm^{-1}$')
+# plt.ylabel('$mm^{-1}$')
+# plt.title('propagated field')
+# plt.tight_layout()
 # plt.show()
 # plt.savefig(FFPath, dpi=100, bbox_inches='tight')
 
@@ -100,7 +100,7 @@ plt.xlabel('mm')
 plt.ylabel('mm')
 plt.title('propagated field')
 plt.tight_layout()
-# plt.savefig(fieldPath, dpi=100, bbox_inches='tight')
+plt.savefig(fieldPath, dpi=100, bbox_inches='tight')
 
 
 
